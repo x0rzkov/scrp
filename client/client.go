@@ -26,7 +26,7 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/dioptre/gtrpc/proto"
+	pb "github.com/dioptre/gtscrp/proto"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
