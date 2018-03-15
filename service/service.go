@@ -25,6 +25,8 @@
 //go:generate protoc -I ../helloworld --go_out=plugins=grpc:../helloworld ../helloworld/helloworld.proto
 package main
 
+//os.Getenv("MACHINE_NAME")
+
 import (
 	"crypto/tls"
 	"fmt"
@@ -56,6 +58,13 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 // Scrape implements proto.ScaperServer
 func (s *server) Scrape(ctx context.Context, in *pb.ScrapeRequest) (*pb.ScrapeReply, error) {
 
+	//Notify the crawler of a new URL
+	received <- in
+	go scrape(in)
+	return &pb.ScrapeReply{Message: true}, nil
+}
+
+func scrape(in *pb.ScrapeRequest) {
 	// Instantiate default collector
 	c := colly.NewCollector(
 		// Turn on asynchronous requests
@@ -74,24 +83,48 @@ func (s *server) Scrape(ctx context.Context, in *pb.ScrapeRequest) (*pb.ScrapeRe
 	}
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  glob,
-		Parallelism: 1,
+		Parallelism: 7,
 		Delay:       7 * time.Second,
 	})
+	// Find and visit all links
+	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		//import "net"
+		//import "net/url"
+		// fmt.Println(u.Host)
+		// host, port, _ := net.SplitHostPort(u.Host)
+		// fmt.Println(host)
+		// fmt.Println(port)
+		e.Request.Visit(e.Attr("href"))
+	})
 
-	// Start scraping in five threads on https://httpbin.org/delay/2
-	for i := 0; i < 5; i++ {
-		defer c.Visit(fmt.Sprintf("%s?n=%d", in.Url, i))
-		//TODO: add to cassandra
-		//Try and add a sharding value to help stop double ups
-	}
+	c.OnRequest(func(r *colly.Request) {
+		fmt.Println("Visiting", r.URL)
+	})
+
+	c.Visit(fmt.Sprintf("%s", in.Url))
 	// Wait until threads are finished
-	defer c.Wait()
-	return &pb.ScrapeReply{Message: true}, nil
+	c.Wait()
 }
 
 //TODO: get from cassandra, mix the following
 //Run different clients for each domain, each at rate limited speeds
-func crawl() {
+var received = make(chan *pb.ScrapeRequest, 10000)
+
+//Provide order to the system and limit amount of connections per crawler
+//Think about using the leaky bucket, and a worker pool
+//https://gobyexample.com/worker-pools
+//& a bursty limiter
+//https://gobyexample.com/rate-limiting
+func dispatch() {
+	//ctx := context.Background()
+
+FOLLOW:
+	var in = <-received
+	fmt.Printf("%s %s\n", in.Url, in.Filter)
+	//time.Sleep(1 * time.Second)
+	// c := Cassandra{}
+	// c.Description()
+	goto FOLLOW
 	// UPDATE users
 	// SET email = ‘janedoe@abc.com’
 	// WHERE login = 'jdoe'
@@ -105,6 +138,8 @@ func crawl() {
 }
 
 func main() {
+	go dispatch()
+
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
