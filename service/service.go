@@ -81,7 +81,7 @@ func scrape(in *pb.ScrapeRequest) {
 	// when visiting links which domains' matches "*httpbin.*" glob
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  in.Filter,
-		Parallelism: 2,
+		Parallelism: 1,
 		//Delay:       7 * time.Second,
 		RandomDelay: 7 * time.Second,
 	})
