@@ -78,10 +78,27 @@ func (s *server) Scrape(ctx context.Context, in *pb.ScrapeRequest) (*pb.ScrapeRe
 	// Start scraping in five threads on https://httpbin.org/delay/2
 	for i := 0; i < 5; i++ {
 		defer c.Visit(fmt.Sprintf("%s?n=%d", in.Url, i))
+		//TODO: add to cassandra
+		//Try and add a sharding value to help stop double ups
 	}
 	// Wait until threads are finished
 	defer c.Wait()
 	return &pb.ScrapeReply{Message: true}, nil
+}
+
+//TODO: get from cassandra, mix the following
+//Run different clients for each domain, each at rate limited speeds
+func crawl() {
+	// UPDATE users
+	// SET email = ‘janedoe@abc.com’
+	// WHERE login = 'jdoe'
+	// IF email = ‘jdoe@abc.com’;
+
+	// 	BEGIN BATCH
+	//   INSERT INTO purchases (user, balance) VALUES ('user1', -8) IF NOT EXISTS;
+	//   INSERT INTO purchases (user, expense_id, amount, description, paid)
+	//     VALUES ('user1', 1, 8, 'burrito', false);
+	// APPLY BATCH;
 }
 
 func main() {

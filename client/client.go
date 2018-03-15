@@ -21,12 +21,18 @@ package main
 
 import (
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"time"
 
 	pb "github.com/dioptre/gtscrp/proto"
+	"github.com/fatih/color"
+	// "github.com/pkg/errors"
+	// "github.com/spf13/cobra"
+	// "github.com/spf13/viper"
+	// "github.com/tj/go-gracefully"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -73,5 +79,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	log.Printf("Scraper processed: %t", r.Message)
+	fmt.Println(color.New(color.Bold, color.FgHiBlack).SprintfFunc()("Scraper start ack: %t", r.Message))
 }
