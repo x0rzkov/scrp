@@ -17,9 +17,12 @@
  *
  */
 
+//TODO: AG
+//Use GO_REUSEPORT listener
+//Run a separate server instance per CPU core with GOMAXPROCS=1 (it appears during benchmarks that there is a lot more context switches with Traefik than with nginx)
+
 //Example
 //go:generate protoc -I ../helloworld --go_out=plugins=grpc:../helloworld ../helloworld/helloworld.proto
-
 package main
 
 import (
