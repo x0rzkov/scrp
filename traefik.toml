@@ -183,3 +183,13 @@ RootCAs = [ "./backend.cert" ]
   backend = "backend1"
     [frontends.frontend1.routes.test_1]
     rule = "Host:frontend.local"
+
+
+[consul]
+  endpoint = "https://backend.local:4444"
+  watch = true
+  prefix = "traefik"
+  [consul.tls]
+  ca = "backend.cert"
+  cert = "backend.cert"
+  key = "backend.key"

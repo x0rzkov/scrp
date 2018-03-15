@@ -5,3 +5,4 @@ protobuf/
 gcli
 gsvc
 traefik
+consul

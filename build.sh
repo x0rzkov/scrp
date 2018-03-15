@@ -43,13 +43,16 @@ fi
 #openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./backend.key -out ./backend.cert -subj "/C=US/ST=San Francisco/L=San Francisco/O=SFPL/OU=IT Department/CN=backend.local"
 #openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./frontend.key -out ./frontend.cert -subj "/C=US/ST=San Francisco/L=San Francisco/O=SFPL/OU=IT Department/CN=frontend.local"
 
+#Store the config in consul when ready
+#traefik storeconfig
+
 #go generate github.com/dioptre/gtscrp/proto
 protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
 #Build client & server
 go build -o gsvc -tags netgo service/service.go
 go build -o gcli -tags netgo client/client.go
-./gsvc # & ./gcli
+./gsvc # &; ./gcli &; ./consul agent -config-file consul.json -bind 127.0.0.1 -bootstrap-expect 1 &; ./traefik -c traefik.toml &;
 
 #Not used
 #go get -u github.com/celrenheit/sandglass-client/go/sg
