@@ -71,8 +71,8 @@ func (s *server) Scrape(ctx context.Context, in *pb.ScrapeRequest) (*pb.ScrapeRe
 	}
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  glob,
-		Parallelism: 2,
-		Delay:       5 * time.Second,
+		Parallelism: 1,
+		Delay:       7 * time.Second,
 	})
 
 	// Start scraping in five threads on https://httpbin.org/delay/2

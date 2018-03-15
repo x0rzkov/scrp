@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	address    = "frontend.local:4443"
-	defaultURL = "https://httpbin.org/delay/2"
+	address       = "frontend.local:4443"
+	defaultURL    = "https://httpbin.org/delay/2"
+	defaultFilter = "*httpbin.*"
 )
 
 func main() {
@@ -62,9 +63,13 @@ func main() {
 	if len(os.Args) > 1 {
 		url = os.Args[1]
 	}
+	filter := defaultFilter
+	if len(os.Args) > 2 {
+		filter = os.Args[2]
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Filter: "*"})
+	r, err := client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Filter: filter})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
