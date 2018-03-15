@@ -45,6 +45,8 @@ fi
 
 #Store the config in consul when ready
 #traefik storeconfig
+#then can just run
+#./traefik #instead of ./traefik -c traefik.toml
 
 #go generate github.com/dioptre/gtscrp/proto
 protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
@@ -53,6 +55,8 @@ protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc
 go build -o gsvc -tags netgo service/service.go
 go build -o gcli -tags netgo client/client.go
 ./gsvc # &; ./gcli &; ./consul agent -config-file consul.json -bind 127.0.0.1 -bootstrap-expect 1 &; ./traefik -c traefik.toml &;
+
+#Dont forget to change/remove bootstrap-expect
 
 #Not used
 #go get -u github.com/celrenheit/sandglass-client/go/sg
