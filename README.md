@@ -1,4 +1,4 @@
-# Unfinished!
+# Unfinished! Come back in a week.
 
 # Why
 A horizontally scalable webscraper in Go. Based on Traefik, gRPC, and my other [boilerplate](https://github.com/dioptre/gtrpc).

@@ -44,7 +44,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./backend.key -out .
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./frontend.key -out ./frontend.cert -subj "/C=US/ST=San Francisco/L=San Francisco/O=SFPL/OU=IT Department/CN=frontend.local"
 
 #go generate github.com/dioptre/gtscrp/proto
-protoc -I proto/ proto/helloworld.proto --go_out=plugins=grpc:proto/
+protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
 #Build client & server
 go build -o gsvc -tags netgo service/service.go

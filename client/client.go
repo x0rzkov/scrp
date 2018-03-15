@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	address     = "frontend.local:4443"
-	defaultName = "world"
+	address    = "frontend.local:4443"
+	defaultURL = "https://httpbin.org/delay/2"
 )
 
 func main() {
@@ -55,18 +55,18 @@ func main() {
 	}
 
 	defer conn.Close()
-	client := pb.NewGreeterClient(conn)
+	client := pb.NewScraperClient(conn)
 
 	// Contact the server and print out its response.
-	name := defaultName
+	url := defaultURL
 	if len(os.Args) > 1 {
-		name = os.Args[1]
+		url = os.Args[1]
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := client.SayHello(ctx, &pb.HelloRequest{Name: name})
+	r, err := client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Filter: "*"})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	log.Printf("Greeting: %s", r.Message)
+	log.Printf("Scraper processed: %t", r.Message)
 }

@@ -28,8 +28,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"time"
 
 	pb "github.com/dioptre/gtscrp/proto"
+	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/debug"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -40,12 +43,45 @@ const (
 	port = ":50551"
 )
 
-// server is used to implement helloworld.GreeterServer.
 type server struct{}
 
-// SayHello implements helloworld.GreeterServer
+// SayHello implements proto.GreeterServer
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	return &pb.HelloReply{Message: "Hello " + in.Name}, nil
+}
+
+// Scrape implements proto.ScaperServer
+func (s *server) Scrape(ctx context.Context, in *pb.ScrapeRequest) (*pb.ScrapeReply, error) {
+
+	// Instantiate default collector
+	c := colly.NewCollector(
+		// Turn on asynchronous requests
+		colly.Async(true),
+		// Attach a debugger to the collector
+		colly.Debugger(&debug.LogDebugger{}),
+	)
+
+	// Limit the number of threads started by colly to two
+	// when visiting links which domains' matches "*httpbin.*" glob
+	var glob string
+	if in.Filter == "" {
+		glob = "*"
+	} else {
+		glob = in.Filter
+	}
+	c.Limit(&colly.LimitRule{
+		DomainGlob:  glob,
+		Parallelism: 2,
+		Delay:       5 * time.Second,
+	})
+
+	// Start scraping in five threads on https://httpbin.org/delay/2
+	for i := 0; i < 5; i++ {
+		defer c.Visit(fmt.Sprintf("%s?n=%d", in.Url, i))
+	}
+	// Wait until threads are finished
+	defer c.Wait()
+	return &pb.ScrapeReply{Message: true}, nil
 }
 
 func main() {
@@ -72,13 +108,11 @@ func main() {
 	var s = grpc.NewServer(serverOption)
 	defer s.Stop()
 
-	pb.RegisterGreeterServer(s, &server{})
+	pb.RegisterScraperServer(s, &server{})
 	fmt.Printf("Server up on %s\n", port)
 	// Register reflection service on gRPC server.
 	// reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
-	} else {
-
 	}
 }
