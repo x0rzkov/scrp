@@ -52,8 +52,8 @@ fi
 protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
 #Build client & server
-go build -o gsvc -tags netgo service/service.go
-go build -o gcli -tags netgo client/client.go
+go build -o gsvc -tags netgo service/*.go
+go build -o gcli -tags netgo client/*.go
 ./gsvc # &; ./gcli &; ./consul agent -config-file consul.json -bind 127.0.0.1 -bootstrap-expect 1 &; ./traefik -c traefik.toml &;
 
 #Dont forget to change/remove bootstrap-expect

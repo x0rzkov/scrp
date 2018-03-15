@@ -42,10 +42,19 @@ import (
 const (
 	address       = "frontend.local:4443"
 	defaultURL    = "https://httpbin.org/delay/2"
-	defaultFilter = "*httpbin.*"
+	defaultFilter = ""
 )
 
 func main() {
+	url := defaultURL
+	if len(os.Args) > 1 {
+		url = os.Args[1]
+	}
+	filter := defaultFilter
+	if len(os.Args) > 2 {
+		filter = os.Args[2]
+	}
+
 	FrontendCert, _ := ioutil.ReadFile("./frontend.cert")
 
 	// Create CertPool
@@ -65,19 +74,12 @@ func main() {
 	client := pb.NewScraperClient(conn)
 
 	// Contact the server and print out its response.
-	url := defaultURL
-	if len(os.Args) > 1 {
-		url = os.Args[1]
-	}
-	filter := defaultFilter
-	if len(os.Args) > 2 {
-		filter = os.Args[2]
-	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Filter: filter})
 	if err != nil {
-		log.Fatalf("could not greet: %v", err)
+		log.Fatalf("could not scrape: %v", err)
 	}
 	fmt.Println(color.New(color.Bold, color.FgHiBlack).SprintfFunc()("Scraper start ack: %t", r.Message))
 }

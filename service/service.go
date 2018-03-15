@@ -45,7 +45,8 @@ import (
 )
 
 const (
-	port = ":50551"
+	port     = ":50551"
+	internal = false
 )
 
 type server struct{}
@@ -58,43 +59,71 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 // Scrape implements proto.ScaperServer
 func (s *server) Scrape(ctx context.Context, in *pb.ScrapeRequest) (*pb.ScrapeReply, error) {
 
-	//Notify the crawler of a new URL
+	//Notify the dispatcher of a new URL
 	received <- in
-	go scrape(in)
 	return &pb.ScrapeReply{Message: true}, nil
 }
 
 func scrape(in *pb.ScrapeRequest) {
+	//ctx := context.Background()
 	// Instantiate default collector
 	c := colly.NewCollector(
-		// Turn on asynchronous requests
-		colly.Async(true),
+		colly.Async(true), // Turn on asynchronous requests
 		// Attach a debugger to the collector
 		colly.Debugger(&debug.LogDebugger{}),
 	)
 
+	if in.Filter != "" {
+		colly.AllowedDomains(in.Filter)(c)
+	}
+
 	// Limit the number of threads started by colly to two
 	// when visiting links which domains' matches "*httpbin.*" glob
-	var glob string
-	if in.Filter == "" {
-		glob = "*"
-	} else {
-		glob = in.Filter
-	}
 	c.Limit(&colly.LimitRule{
-		DomainGlob:  glob,
-		Parallelism: 7,
-		Delay:       7 * time.Second,
+		DomainGlob:  in.Filter,
+		Parallelism: 2,
+		//Delay:       7 * time.Second,
+		RandomDelay: 7 * time.Second,
 	})
+
 	// Find and visit all links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		//TODO: Save all links to Cassandra
+		if internal {
+			//TODO: Recurse, and
+			//DUPLICATE: TODO: Check if we've already got it in cassandra - else scrape!!!!
+			e.Request.Visit(e.Attr("href"))
+		} else {
+			Rescrape(e.Attr("href"), in.Filter)
+		}
+	})
+
+	//TODO: Process content
+	type item struct {
+		StoryURL  string
+		Source    string
+		comments  string
+		CrawledAt time.Time
+		Comments  string
+		Title     string
+	}
+	// On every a element which has .top-matter attribute call callback
+	// This class is unique to the div that holds all information about a story
+	stories := []item{}
+	c.OnHTML(".selectedidimtryingtofind", func(e *colly.HTMLElement) {
 		//import "net"
 		//import "net/url"
 		// fmt.Println(u.Host)
 		// host, port, _ := net.SplitHostPort(u.Host)
 		// fmt.Println(host)
 		// fmt.Println(port)
-		e.Request.Visit(e.Attr("href"))
+		temp := item{}
+		temp.StoryURL = e.ChildAttr("a[data-event-action=title]", "href")
+		temp.Source = "https://www.reddit.com/r/programming/"
+		temp.Title = e.ChildText("a[data-event-action=title]")
+		temp.Comments = e.ChildAttr("a[data-event-action=comments]", "href")
+		temp.CrawledAt = time.Now()
+		stories = append(stories, temp)
 	})
 
 	c.OnRequest(func(r *colly.Request) {
@@ -108,7 +137,7 @@ func scrape(in *pb.ScrapeRequest) {
 
 //TODO: get from cassandra, mix the following
 //Run different clients for each domain, each at rate limited speeds
-var received = make(chan *pb.ScrapeRequest, 10000)
+var received = make(chan *pb.ScrapeRequest, 1000)
 
 //Provide order to the system and limit amount of connections per crawler
 //Think about using the leaky bucket, and a worker pool
@@ -116,11 +145,12 @@ var received = make(chan *pb.ScrapeRequest, 10000)
 //& a bursty limiter
 //https://gobyexample.com/rate-limiting
 func dispatch() {
-	//ctx := context.Background()
 
 FOLLOW:
 	var in = <-received
 	fmt.Printf("%s %s\n", in.Url, in.Filter)
+	//TODO: Check if we've already got it in cassandra - else scrape!!!!
+	go scrape(in)
 	//time.Sleep(1 * time.Second)
 	// c := Cassandra{}
 	// c.Description()
