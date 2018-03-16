@@ -35,6 +35,7 @@ import (
 	"log"
 	random "math/rand"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -351,6 +352,12 @@ func main() {
 	//Let's process approved requests
 	go process()
 
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "Request for %s\n\nOK", r.URL.Path)
+		})
+	}()
+
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -381,4 +388,5 @@ func main() {
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+
 }
