@@ -110,10 +110,6 @@ func scrape(in *pb.ScrapeRequest) {
 		}
 	})
 
-	c.OnResponse(func(r *colly.Response) {
-		//fmt.Println(string(r.Body))
-	})
-
 	ScrapeDetail(c)
 
 	c.OnRequest(func(r *colly.Request) {

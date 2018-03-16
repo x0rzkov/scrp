@@ -37,4 +37,9 @@ func ScrapeDetail(c *colly.Collector) {
 		stories = append(stories, temp)
 	})
 
+	//TODO:Save original in S3
+	c.OnResponse(func(r *colly.Response) {
+		//fmt.Println(string(r.Body))
+	})
+
 }
