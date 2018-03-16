@@ -189,7 +189,7 @@ func scrape(in *pb.ScrapeRequest) {
 
 	})
 
-	ScrapeDetail(c)
+	ScrapeDetail(in, c)
 
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL)
