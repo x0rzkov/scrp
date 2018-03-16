@@ -354,7 +354,7 @@ func main() {
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Request for %s\n\nOK", r.URL.Path)
+			fmt.Fprintf(w, "OK")
 		})
 	}()
 
