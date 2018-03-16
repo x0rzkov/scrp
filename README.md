@@ -1,5 +1,5 @@
 # What
-A horizontally (infinitely) scalable webscraper in Go. Based on Cassandra, Traefik, colly, gRPC, and my other [boilerplate](https://github.com/dioptre/gtrpc).
+A horizontally (infinitely) scalable webscraper in Go. Based on Docker swarm, Cassandra, Traefik, colly, gRPC, and my other [boilerplate](https://github.com/dioptre/gtrpc).
 
 # Note
 You could probably just use colly.
