@@ -1,5 +1,4 @@
 #!/bin/bash
-
 FILE=gsvc
 if [ -f $FILE ]; then
    echo "
@@ -37,6 +36,8 @@ else
     "
 fi
 
+#Setup Cassandra Schema
+#cqlsh --ssl -f schema.1.cql 
 
 #Generate certificates for gRPC
 #Common Name (e.g. server FQDN or YOUR name) []:backend.local
@@ -54,9 +55,12 @@ protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc
 #Build client & server
 go build -o gsvc -tags netgo service/*.go
 go build -o gcli -tags netgo client/*.go
-./gsvc # &; ./gcli &; ./consul agent -config-file consul.json -bind 127.0.0.1 -bootstrap-expect 1 &; ./traefik -c traefik.toml &;
+
+#On Server... run consul and traefik too, login credentials to cassandra can be changed in execution arguments
+GOCQL_HOST_LOOKUP_PREFER_V4=true ./gsvc localhost false false cassandra-ca.cert cassandra-client.cert cassandra-client.key  # &; ./consul agent -config-file consul.json -bind 127.0.0.1 -bootstrap-expect 1 &; ./traefik -c traefik.toml &;
+#On your client
+#./gcli &;
 
 #Dont forget to change/remove bootstrap-expect
 
-#Not used
-#go get -u github.com/celrenheit/sandglass-client/go/sg
+#Or generate certificates

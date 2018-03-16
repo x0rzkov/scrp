@@ -32,9 +32,15 @@ message ScrapeRequest {
   string url = 2;
   string domain = 3;
   string filter = 4;
+  string seq = 5;
+  int32 status = 6;
+  string mid = 7;
+  int32 attempts = 8;
+  string sched = 9;
+  int64 size = 10;
 }
 
 // The response message containing the greetings
 message ScrapeReply {
-  bool message = 1;
+  string message = 1;
 }

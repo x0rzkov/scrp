@@ -25,22 +25,27 @@
 //go:generate protoc -I ../helloworld --go_out=plugins=grpc:../helloworld ../helloworld/helloworld.proto
 package main
 
-//os.Getenv("MACHINE_NAME")
-
 import (
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	random "math/rand"
 	"net"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	pb "github.com/dioptre/gtscrp/proto"
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/debug"
-	"github.com/satori/go.uuid"
+	"github.com/gocql/gocql"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -48,11 +53,51 @@ import (
 )
 
 const (
-	port     = ":50551"
-	internal = false
+	port         = ":50551"
+	internal     = false //run requests on the same server or go through load balancer
+	debugScraper = true  //print verbose debug output
+	processWait  = 7     //seconds random max wait time for query outstanding links
+	siteWait     = 14    //seconds to wait between hits on site
+	retries      = 5
+)
+
+var (
+	midOnce sync.Once
+	mid     [6]byte
+	mids    string
+	//Setup cassandra connection and defaults
+	db = &Cassandra{URLs: []string{"127.0.0.1"}, Keyspace: "scrp", VerifyHost: true, Retry: false}
 )
 
 type server struct{}
+
+func getMachineID() {
+	midOnce.Do(func() {
+		io.ReadFull(rand.Reader, mid[:])
+		ifaces, err := net.Interfaces()
+		if err == nil {
+			for _, iface := range ifaces {
+				if len(iface.HardwareAddr) >= 6 {
+					copy(mid[:], iface.HardwareAddr)
+					break
+				}
+			}
+		}
+		mids = base64.StdEncoding.EncodeToString(mid[:6])
+	})
+}
+
+//GetMachineBytes : Gets the server's unique ID
+func GetMachineBytes() [6]byte {
+	getMachineID()
+	return mid
+}
+
+//GetMachineString : Gets the server's unique ID
+func GetMachineString() string {
+	getMachineID()
+	return mids
+}
 
 // SayHello implements proto.GreeterServer
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
@@ -61,24 +106,26 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 
 // Scrape implements proto.ScaperServer
 func (s *server) Scrape(ctx context.Context, in *pb.ScrapeRequest) (*pb.ScrapeReply, error) {
-
-	//Notify the dispatcher of a new URL
+	//Notify the receiver of a new URL
 	if in.Id == "" {
-		u, _ := uuid.NewV1()
-		in.Id = u.String()
+		in.Id = gocql.TimeUUID().String()
 	}
 	received <- in
-	return &pb.ScrapeReply{Message: true}, nil
+	return &pb.ScrapeReply{Message: in.Id}, nil
 }
 
 func scrape(in *pb.ScrapeRequest) {
 	//ctx := context.Background()
+
 	// Instantiate default collector
 	c := colly.NewCollector(
 		colly.Async(true), // Turn on asynchronous requests
-		// Attach a debugger to the collector
-		colly.Debugger(&debug.LogDebugger{}),
 	)
+
+	if debugScraper {
+		// Attach a debugger to the collector
+		colly.Debugger(&debug.LogDebugger{})(c)
+	}
 
 	if in.Filter != "" && in.Filter != "_" {
 		filterStrings := strings.Split(in.Filter, "|")
@@ -103,10 +150,11 @@ func scrape(in *pb.ScrapeRequest) {
 
 	// Find and visit all links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		in.Url = e.Attr("href")
 		if internal {
-			received <- &pb.ScrapeRequest{Id: in.Id, Url: e.Attr("href"), Domain: in.Domain, Filter: in.Filter}
+			received <- in
 		} else {
-			Rescrape(&pb.ScrapeRequest{Id: in.Id, Url: e.Attr("href"), Domain: in.Domain, Filter: in.Filter})
+			Rescrape(in)
 		}
 	})
 
@@ -116,12 +164,39 @@ func scrape(in *pb.ScrapeRequest) {
 		fmt.Println("Visiting", r.URL)
 	})
 
+	//TODO:Save original in S3
+	c.OnResponse(func(r *colly.Response) {
+		//fmt.Println(string(r.Body))
+		in.Status = int32(r.StatusCode)
+		in.Size = int64(len(r.Body))
+		db.UpdateURL(in)
+	})
+
 	c.Visit(fmt.Sprintf("%s", in.Url))
+
 	// Wait until threads are finished
 	c.Wait()
 }
 
-var received = make(chan *pb.ScrapeRequest, 10000)
+//Let's not receive more than 1000 links at a time (per machine)
+var received = make(chan *pb.ScrapeRequest, 1000)
+
+func receive() {
+RECEIVE:
+	var in = <-received
+	//Write as fast as we want to cassandra, and add new ones to the queue
+	db.InsertURL(in)
+	goto RECEIVE //TODO: Test whether this as a single thread is ok
+}
+
+//Query share the common query type
+type Query struct {
+	Domain string
+	Filter string
+	Queue  chan *pb.ScrapeRequest
+}
+
+var queries = make(map[gocql.UUID]*Query)
 
 //Provide order to the system and limit amount of connections per crawler
 //Think about using the leaky bucket, and a worker pool
@@ -129,24 +204,117 @@ var received = make(chan *pb.ScrapeRequest, 10000)
 //& a bursty limiter
 //https://gobyexample.com/rate-limiting
 //TODO: Could also optimize memory allocation of collys with QueryId
-func dispatch() {
-FOLLOW:
-	var in = <-received
-	//Write as fast as we want to cassandra
-	fmt.Printf("%s %s %s %s\n", in.Id, in.Url, in.Domain, in.Filter)
-	//TODO: Check if we've already got it in cassandra - else scrape!!!!
-	//time.Sleep(1 * time.Second)
-	// c := Cassandra{}
-	// c.Description()
-
-	//TODO: Rate limit the scrape by ScrapeRequest.Id
-	go scrape(in)
-	goto FOLLOW //TODO: Test whether this as a single thread is ok
-
+//TODO: Write a service to go through unfinished links in the background
+////Use len(queued) to see how many we have queued already
+//TODO: Check if we've already got it in cassandra - else scrape!!!!
+//time.Sleep(1 * time.Second)
+// c := Cassandra{}
+// c.Description()
+//import "net"
+//import "net/url"
+// fmt.Println(u.Host)
+// host, port, _ := net.SplitHostPort(u.Host)
+// fmt.Println(host)
+// fmt.Println(port)
+//TODO: Rate limit the scrape by ScrapeRequest.Id
+func process() {
+	var url string
+	var qid gocql.UUID
+	var seq gocql.UUID
+	var status int32
+	var sched time.Time
+	var mid string
+	var attempts int32
+	var domain string
+	var filter string
+	var queue chan *pb.ScrapeRequest
+PROCESS:
+	iter := db.GetTodos()
+	for {
+		// New map each iteration
+		row := map[string]interface{}{
+			"url":      &url,
+			"qid":      &qid,
+			"seq":      &seq,
+			"status":   &status,
+			"sched":    &sched,
+			"mid":      &mid,
+			"attempts": &attempts,
+		}
+		if !iter.MapScan(row) {
+			break
+		}
+		if sched.After(time.Now()) {
+			continue
+		}
+		if val, ok := queries[qid]; ok {
+			domain = val.Domain
+			filter = val.Filter
+			queue = val.Queue
+		} else {
+			var err error
+			if domain, filter, err = db.GetQuery(qid.String()); err == nil {
+				queue = make(chan *pb.ScrapeRequest, 100)
+				queries[qid] = &Query{Domain: domain, Filter: filter, Queue: queue}
+				go func() {
+					for {
+						var approved = <-queue
+						scrape(approved)
+						time.Sleep((time.Duration(random.Intn(siteWait)) + 3) * time.Second)
+					}
+				}()
+			}
+		}
+		queue <- &pb.ScrapeRequest{Id: qid.String(), Url: url, Domain: domain, Filter: filter, Seq: seq.String(), Status: status, Sched: sched.String(), Mid: mid, Attempts: attempts}
+	}
+	time.Sleep(time.Duration(random.Intn(processWait)) * time.Second)
+	goto PROCESS
 }
 
 func main() {
-	go dispatch()
+
+	//Cassandra Host
+	if len(os.Args) > 1 {
+		db.URLs = strings.Split(os.Args[1], ",")
+	}
+	//Cassandra Retry
+	if len(os.Args) > 2 {
+		v, err := strconv.ParseBool(os.Args[2])
+		if err != nil {
+			v = false
+		}
+		db.Retry = v
+	}
+	//Cassandra VerifyHost
+	if len(os.Args) > 3 {
+		v, err := strconv.ParseBool(os.Args[3])
+		if err != nil {
+			v = false
+		}
+		db.VerifyHost = v
+	}
+	//Cassandra Cert
+	if len(os.Args) > 6 {
+		db.SSLCA = os.Args[4]
+		db.SSLCert = os.Args[5]
+		db.SSLKey = os.Args[6]
+	}
+	//Cassandra Username & Password
+	if len(os.Args) > 8 {
+		db.Username = os.Args[7]
+		db.Password = os.Args[8]
+	}
+
+	if err := db.Connect(); err != nil {
+		log.Fatalf("Failed to connect to Cassandra:\n\n%v\n\nError:\n%v", db, err)
+	}
+	fmt.Println("Connected to Cassandra")
+
+	//Let's receive requests
+	go receive()
+
+	//Let's process approved requests
+	go process()
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {

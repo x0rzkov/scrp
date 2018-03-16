@@ -28,7 +28,7 @@ import (
 	"time"
 
 	pb "github.com/dioptre/gtscrp/proto"
-	"github.com/fatih/color"
+
 	// "github.com/pkg/errors"
 	// "github.com/spf13/cobra"
 	// "github.com/spf13/viper"
@@ -72,7 +72,7 @@ func main() {
 	// Dial with specific Transport (with credentials)
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(credsClient))
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Fatalf("Did not connect: %v\n", err)
 	}
 
 	defer conn.Close()
@@ -84,7 +84,7 @@ func main() {
 	defer cancel()
 	r, err := client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Domain: domain, Filter: filter})
 	if err != nil {
-		log.Fatalf("could not scrape: %v", err)
+		log.Fatalf("Could not scrape: %v\n", err)
 	}
-	fmt.Println(color.New(color.Bold, color.FgHiBlack).SprintfFunc()("Scraper start ack: %t", r.Message))
+	fmt.Printf("Scraper start ack: %s\n", r.Message)
 }
