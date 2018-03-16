@@ -77,13 +77,14 @@ func (i *Cassandra) InsertURL(in *pb.ScrapeRequest) error {
 		in.Domain,
 		in.Filter,
 	).Exec(); err == nil {
-		err = i.session.Query(`INSERT INTO urls (url,status,seq,sched,mid,qid) values (?,?,?,?,?,?) IF NOT EXISTS`,
+		err = i.session.Query(`INSERT INTO urls (url,status,seq,sched,mid,qid,attempts) values (?,?,?,?,?,?,?) IF NOT EXISTS`,
 			in.Url,
 			0,
 			gocql.TimeUUID(),
 			time.Now().UTC(),
 			GetMachineString(),
-			qid).Exec()
+			qid,
+			0).Exec()
 	}
 
 	return err

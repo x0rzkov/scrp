@@ -35,6 +35,7 @@ import (
 	"log"
 	random "math/rand"
 	"net"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -56,9 +57,9 @@ const (
 	port         = ":50551"
 	internal     = false //run requests on the same server or go through load balancer
 	debugScraper = true  //print verbose debug output
-	processWait  = 7     //seconds random max wait time for query outstanding links
-	siteWait     = 14    //seconds to wait between hits on site
-	retries      = 5
+	processWait  = 2     //seconds random max wait time for query outstanding links
+	siteWait     = 2     //seconds to wait between hits on site
+	retries      = 1
 )
 
 var (
@@ -150,12 +151,41 @@ func scrape(in *pb.ScrapeRequest) {
 
 	// Find and visit all links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
-		in.Url = e.Attr("href")
-		if internal {
-			received <- in
+		//in.Url = e.Attr("href")
+		u, _ := url.Parse(e.Attr("href"))
+		newURL := e.Request.URL.ResolveReference(u)
+		in.Url = newURL.String()
+		approved := false
+		if c.AllowedDomains == nil || len(c.AllowedDomains) == 0 {
+			approved = true
 		} else {
-			Rescrape(in)
+			for _, d := range c.AllowedDomains {
+				if d == newURL.Host {
+					approved = true
+					break
+				}
+			}
 		}
+		if approved == true {
+			if len(c.URLFilters) > 0 {
+				approved = false
+				for _, r := range c.URLFilters {
+					if r.Match([]byte(in.Url)) {
+						approved = true
+						break
+					}
+				}
+			}
+			if approved == true {
+				if internal {
+					received <- in
+				} else {
+					Rescrape(in)
+				}
+			}
+
+		}
+
 	})
 
 	ScrapeDetail(c)
@@ -169,6 +199,11 @@ func scrape(in *pb.ScrapeRequest) {
 		//fmt.Println(string(r.Body))
 		in.Status = int32(r.StatusCode)
 		in.Size = int64(len(r.Body))
+		db.UpdateURL(in)
+	})
+
+	c.OnError(func(r *colly.Response, err error) {
+		in.Status = int32(r.StatusCode)
 		db.UpdateURL(in)
 	})
 
