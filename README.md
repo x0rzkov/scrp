@@ -6,5 +6,5 @@ A horizontally (infinitely) scalable webscraper in Go. Based on Cassandra, Traef
 *Read* and run build.sh for instructions on building and executing.
 
 # Thanks
-Cheers to the engineers of Cassandra, colly, gRPC, Traefik & protobuf to name a few.
+Cheers to the engineers of Cassandra, colly, gRPC,Consul, Traefik & protobuf to name a few.
 
