@@ -132,33 +132,21 @@ var received = make(chan *pb.ScrapeRequest, 10000)
 //https://gobyexample.com/worker-pools
 //& a bursty limiter
 //https://gobyexample.com/rate-limiting
-//TODO: Could also optimize memory allocation with QueryId
-//TODO: get from cassandra, mix the following
-//Run different clients for each domain, each at rate limited speeds
+//TODO: Could also optimize memory allocation of collys with QueryId
 func dispatch() {
-	//TODO: Get a map of existing QueryIds and save on collys
 FOLLOW:
 	var in = <-received
 	//Write as fast as we want to cassandra
 	fmt.Printf("%s %s %s %s\n", in.Id, in.Url, in.Domain, in.Filter)
 	//TODO: Check if we've already got it in cassandra - else scrape!!!!
-
-	//TODO: Rate limit the scrape by ScrapeRequest.Id
-	go scrape(in)
 	//time.Sleep(1 * time.Second)
 	// c := Cassandra{}
 	// c.Description()
-	goto FOLLOW
-	// UPDATE users
-	// SET email = ‘janedoe@abc.com’
-	// WHERE login = 'jdoe'
-	// IF email = ‘jdoe@abc.com’;
 
-	// 	BEGIN BATCH
-	//   INSERT INTO purchases (user, balance) VALUES ('user1', -8) IF NOT EXISTS;
-	//   INSERT INTO purchases (user, expense_id, amount, description, paid)
-	//     VALUES ('user1', 1, 8, 'burrito', false);
-	// APPLY BATCH;
+	//TODO: Rate limit the scrape by ScrapeRequest.Id
+	go scrape(in)
+	goto FOLLOW //TODO: Test whether this as a single thread is ok
+
 }
 
 func main() {

@@ -4,15 +4,9 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gocql/gocql"
-)
-
-var (
-	// Quote Ident replacer.
-	qiReplacer = strings.NewReplacer("\n", `\n`, `\`, `\\`, `"`, `\"`)
 )
 
 // Cassandra struct is the primary data structure for the plugin
@@ -48,49 +42,6 @@ type Cassandra struct {
 	session *gocql.Session
 }
 
-var sampleConfig = `
-  ## The full HTTP or UDP URL for your InfluxDB instance.
-  ##
-  ## Multiple urls can be specified as part of the same cluster,
-  ## this means that only ONE of the urls will be written to each interval.
-  # urls = ["udp://127.0.0.1:8089"] # UDP endpoint example
-  urls = ["http://127.0.0.1:8086"] # required
-  ## The target database for metrics (telegraf will create it if not exists).
-  database = "telegraf" # required
-
-  ## Name of existing retention policy to write to.  Empty string writes to
-  ## the default retention policy.
-  retention_policy = ""
-  ## Write consistency (clusters only), can be: "any", "one", "quorum", "all"
-  write_consistency = "any"
-
-  ## Write timeout (for the InfluxDB client), formatted as a string.
-  ## If not provided, will default to 5s. 0s means no timeout (not recommended).
-  timeout = "5s"
-  # username = "telegraf"
-  # password = "metricsmetricsmetricsmetrics"
-  ## Set the user agent for HTTP POSTs (can be useful for log differentiation)
-  # user_agent = "telegraf"
-  ## Set UDP payload size, defaults to InfluxDB UDP Client default (512 bytes)
-  # udp_payload = 512
-
-  ## Optional SSL Config
-  # ssl_ca = "/etc/telegraf/ca.pem"
-  # ssl_cert = "/etc/telegraf/cert.pem"
-  # ssl_key = "/etc/telegraf/key.pem"
-  ## Use SSL but skip chain & host verification
-  # insecure_skip_verify = false
-
-  ## HTTP Proxy Config
-  # http_proxy = "http://corporate.proxy:3128"
-
-  ## Optional HTTP headers
-  # http_headers = {"X-Special-Header" = "Special-Value"}
-
-  ## Compress each HTTP request payload using GZIP.
-  # content_encoding = "gzip"
-`
-
 // Connect initiates the primary connection to the range of provided URLs
 func (i *Cassandra) Connect() error {
 	var urls []string
@@ -124,14 +75,18 @@ func (i *Cassandra) Close() error {
 	return nil
 }
 
-// SampleConfig returns the formatted sample configuration for the plugin
-func (i *Cassandra) SampleConfig() string {
-	return sampleConfig
-}
+func (i *Cassandra) Check() error {
+	// UPDATE users
+	// SET email = ‘janedoe@abc.com’
+	// WHERE login = 'jdoe'
+	// IF email = ‘jdoe@abc.com’;
 
-// Description returns the human-readable function definition of the plugin
-func (i *Cassandra) Description() string {
-	return "Configuration for cassandra server to send metrics to"
+	// 	BEGIN BATCH
+	//   INSERT INTO purchases (user, balance) VALUES ('user1', -8) IF NOT EXISTS;
+	//   INSERT INTO purchases (user, expense_id, amount, description, paid)
+	//     VALUES ('user1', 1, 8, 'burrito', false);
+	// APPLY BATCH;
+	return nil
 }
 
 // Write will choose a random server in the cluster to write to until a successful write
