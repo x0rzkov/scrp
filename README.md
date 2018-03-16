@@ -2,7 +2,7 @@
 A horizontally (infinitely) scalable webscraper in Go. Based on Docker swarm, Cassandra, Traefik, colly, gRPC, and my other [boilerplate](https://github.com/dioptre/gtrpc).
 
 # Note
-You could probably just use colly.
+You could probably just use colly... Especially if you don't care about scalability.
 
 # Why
 I built this to distribute scraping across multiple servers, so as to go undetected. I could have used proxies, but wanted to reuse the code for other distributed apps.
