@@ -42,6 +42,7 @@ import (
 const (
 	address       = "frontend.local:4443"
 	defaultURL    = "https://httpbin.org/delay/2"
+	defaultDomain = ""
 	defaultFilter = ""
 )
 
@@ -50,9 +51,13 @@ func main() {
 	if len(os.Args) > 1 {
 		url = os.Args[1]
 	}
-	filter := defaultFilter
+	domain := defaultDomain
 	if len(os.Args) > 2 {
-		filter = os.Args[2]
+		domain = os.Args[2]
+	}
+	filter := defaultFilter
+	if len(os.Args) > 3 {
+		filter = os.Args[3]
 	}
 
 	FrontendCert, _ := ioutil.ReadFile("./frontend.cert")
@@ -77,7 +82,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Filter: filter})
+	r, err := client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Domain: domain, Filter: filter})
 	if err != nil {
 		log.Fatalf("could not scrape: %v", err)
 	}

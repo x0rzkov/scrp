@@ -17,7 +17,7 @@ const (
 )
 
 //Rescrape : Go through load balancer, 're-scrape'
-func Rescrape(url string, filter string) {
+func Rescrape(in *pb.ScrapeRequest) {
 	FrontendCert, _ := ioutil.ReadFile("./frontend.cert")
 
 	// Create CertPool
@@ -40,7 +40,7 @@ func Rescrape(url string, filter string) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err = client.Scrape(ctx, &pb.ScrapeRequest{Url: url, Filter: filter})
+	_, err = client.Scrape(ctx, in)
 	if err != nil {
 		log.Fatalf("could not scrape: %v\n", err)
 	}

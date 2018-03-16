@@ -28,8 +28,10 @@ service Scraper {
 
 // The request message containing the user's name.
 message ScrapeRequest {
-  string url = 1;
-  string filter = 2;
+  string id = 1;
+  string url = 2;
+  string domain = 3;
+  string filter = 4;
 }
 
 // The response message containing the greetings
