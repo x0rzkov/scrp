@@ -354,8 +354,10 @@ func main() {
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "OK")
+			fmt.Fprint(w, "OK")
 		})
+
+		http.ListenAndServe(":50580", nil)
 	}()
 
 	lis, err := net.Listen("tcp", port)
