@@ -58,8 +58,8 @@ const (
 	port         = ":50551"
 	internal     = false //run requests on the same server or go through load balancer
 	debugScraper = true  //print verbose debug output
-	processWait  = 2     //seconds random max wait time for query outstanding links
-	siteWait     = 2     //seconds to wait between hits on site
+	processWait  = 14    //seconds random max wait time for query outstanding links
+	siteWait     = 14    //seconds to wait between hits on site
 	retries      = 1
 )
 
