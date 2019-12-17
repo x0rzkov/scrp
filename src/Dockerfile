@@ -52,8 +52,10 @@ RUN tar xzvf go.tar.gz
 
 
 RUN bash -c 'echo "GOROOT=/app/scrp/go" >> ~/.bashrc' \
-  && bash -c 'echo "GOPATH=/app/go" >> ~/.bashrc' \
-  && bash -c 'echo "PATH=/app/scrp/go/bin:$PATH" >> ~/.bashrc' 
+  && bash -c 'echo "GOPATH=/app/golang" >> ~/.bashrc' \
+  && bash -c 'echo "PATH=/app/scrp/go/bin:$GOPATH/bin:$PATH" >> ~/.bashrc' 
+
+ENV GOPATH=/app/golang
 
 
 # install latest AWS CLI
@@ -78,6 +80,19 @@ COPY scrp.supervisor.conf /etc/supervisor/conf.d/scrp.supervisor.conf
 # prepare nginx cache
 #RUN mkdir /tmp/nginx_cache_ms \
 # && chown www-data:www-data /tmp/nginx_cache_ms
+
+RUN git clone https://github.com/google/protobuf
+WORKDIR /app/scrp/protobuf
+RUN ./autogen.sh
+RUN ./configure
+RUN make
+RUN make install
+RUN ldconfig
+RUN go get -u github.com/golang/protobuf/protoc-gen-go
+RUN go get -u google.golang.org/grpc
+
+WORKDIR /app/scrp
+RUN protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
 WORKDIR /app/scrp/service
 RUN go get
