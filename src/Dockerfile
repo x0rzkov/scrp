@@ -31,7 +31,9 @@ RUN bash -c 'echo "net.core.somaxconn = 8192" >> /etc/sysctl.conf' \
 ####################################################################################
 
 # update packages and install required ones
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+RUN apt-get update
+#RUN apt-get upgrade -y
+RUN apt-get install -y \
   supervisor \
  nginx \
  python-pip \
@@ -88,19 +90,19 @@ RUN ./configure
 RUN make
 RUN make install
 RUN ldconfig
-RUN go get -u github.com/golang/protobuf/protoc-gen-go
-RUN go get -u google.golang.org/grpc
+RUN /app/scrp/bin/go get -u github.com/golang/protobuf/protoc-gen-go
+RUN /app/scrp/bin/go get -u google.golang.org/grpc
 
 WORKDIR /app/scrp
 RUN protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
 WORKDIR /app/scrp/service
-RUN go get
-RUN go build
+RUN /app/scrp/bin/go get
+RUN /app/scrp/bin/go build
 
 WORKDIR /app/scrp/client
-RUN go get
-RUN go build
+RUN /app/scrp/bin/go get
+RUN /app/scrp/bin/go build
 
 
 ####################################################################################
