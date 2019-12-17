@@ -49,7 +49,7 @@ fi
 #then can just run
 #./traefik #instead of ./traefik -c traefik.toml
 
-#go generate github.com/dioptre/gtscrp/proto
+#go generate github.com/dioptre/scrp/src/proto
 protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
 #Build client & server

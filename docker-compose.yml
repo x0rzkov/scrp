@@ -1,5 +1,20 @@
 version: "3.4"
 services:
+  cassandra-seed1:
+     image: docker.pkg.github.com/dioptre/elassandra/elassandra:latest
+     expose:
+       - "9042"
+     ports:
+       - "9042:9042"
+     network_mode: host  
+  nats:
+    build: ./nats
+    ports:
+      - "4222:4222"
+      - "6222:6222"
+      - "8222:8222"
+    networks:
+      - default
   traefik_init:
     image: traefik:1.5
     command:
