@@ -108,6 +108,7 @@ RUN ldconfig
 ####################################################################################
 
 # startup command
+WORKDIR /app/scrp
 CMD bash dockercmd.sh
 #CMD ["-config ./seed.conf -D"]
 
