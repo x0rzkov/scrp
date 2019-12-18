@@ -90,19 +90,19 @@ RUN ./configure
 RUN make
 RUN make install
 RUN ldconfig
-RUN /app/scrp/bin/go get -u github.com/golang/protobuf/protoc-gen-go
-RUN /app/scrp/bin/go get -u google.golang.org/grpc
+# RUN /app/scrp/go/bin/go get -u github.com/golang/protobuf/protoc-gen-go
+# RUN /app/scrp/go/bin/go get -u google.golang.org/grpc
 
-WORKDIR /app/scrp
-RUN protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
+# WORKDIR /app/scrp
+# RUN protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
-WORKDIR /app/scrp/service
-RUN /app/scrp/bin/go get
-RUN /app/scrp/bin/go build
+# WORKDIR /app/scrp/service
+# RUN /app/scrp/go/bin/go get
+# RUN /app/scrp/go/bin/go build
 
-WORKDIR /app/scrp/client
-RUN /app/scrp/bin/go get
-RUN /app/scrp/bin/go build
+# WORKDIR /app/scrp/client
+# RUN /app/scrp/go/bin/go get
+# RUN /app/scrp/go/bin/go build
 
 
 ####################################################################################

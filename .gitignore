@@ -8,3 +8,4 @@ traefik
 consul
 */debug
 data/
+.DS_STORE
