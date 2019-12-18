@@ -55,7 +55,7 @@ RUN tar xzvf go.tar.gz
 
 RUN bash -c 'echo "GOROOT=/app/scrp/go" >> ~/.bashrc' \
   && bash -c 'echo "GOPATH=/app/golang" >> ~/.bashrc' \
-  && bash -c 'echo "PATH=/app/scrp/go/bin:$GOPATH/bin:$PATH" >> ~/.bashrc' 
+  && bash -c 'echo "PATH=/app/scrp/go/bin:/app/golang/bin:$PATH" >> ~/.bashrc' 
 
 ENV GOPATH=/app/golang
 
