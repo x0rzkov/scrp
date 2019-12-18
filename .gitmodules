@@ -1,3 +1,0 @@
-[submodule "nats"]
-	path = nats
-	url = git@github.com:dioptre/nats.git
