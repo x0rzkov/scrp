@@ -32,7 +32,7 @@ RUN bash -c 'echo "net.core.somaxconn = 8192" >> /etc/sysctl.conf' \
 
 # update packages and install required ones
 RUN apt-get update
-#RUN apt-get upgrade -y
+RUN apt-get upgrade -y
 RUN apt-get install -y \
   supervisor \
  nginx \
@@ -90,25 +90,23 @@ RUN ./configure
 RUN make
 RUN make install
 RUN ldconfig
-# RUN /app/scrp/go/bin/go get -u github.com/golang/protobuf/protoc-gen-go
-# RUN /app/scrp/go/bin/go get -u google.golang.org/grpc
+RUN /app/scrp/go/bin/go get -u github.com/golang/protobuf/protoc-gen-go
+RUN /app/scrp/go/bin/go get -u google.golang.org/grpc
 
-# WORKDIR /app/scrp
-# RUN protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
+WORKDIR /app/scrp
 
-# WORKDIR /app/scrp/service
-# RUN /app/scrp/go/bin/go get
-# RUN /app/scrp/go/bin/go build
+RUN PATH=/app/scrp/go/bin:/app/golang/bin:$PATH protoc -I proto/ proto/helloworld.proto proto/scrape.proto --go_out=plugins=grpc:proto/
 
-# WORKDIR /app/scrp/client
-# RUN /app/scrp/go/bin/go get
-# RUN /app/scrp/go/bin/go build
+RUN /app/scrp/go/bin/go get ./client || true
+RUN /app/scrp/go/bin/go build -o ./gcli -tags netgo client/*.go
+RUN /app/scrp/go/bin/go get ./service || true
+RUN /app/scrp/go/bin/go build -o ./gsvc -tags netgo service/*.go
 
 
 ####################################################################################
 
 # startup command
-WORKDIR /app/scrp
+
 CMD bash dockercmd.sh
 #CMD ["-config ./seed.conf -D"]
 
