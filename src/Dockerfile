@@ -103,6 +103,7 @@ RUN /app/scrp/go/bin/go get ./service || true
 RUN /app/scrp/go/bin/go build -o ./gsvc -tags netgo service/*.go
 
 RUN bash -c 'echo "127.0.0.1 backend.local" >> /etc/hosts'
+RUN bash -c 'echo "127.0.0.1 frontend.local" >> /etc/hosts'
 
 ####################################################################################
 
