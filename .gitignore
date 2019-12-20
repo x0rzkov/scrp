@@ -9,3 +9,4 @@ consul
 */debug
 data/
 .DS_STORE
+.data/

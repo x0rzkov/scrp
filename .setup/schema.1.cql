@@ -2,7 +2,7 @@
 -- cqlsh --ssl -f schema.1.cql 
 
 -- SCRP
-drop keyspace scrp;
+-- drop keyspace scrp;
 create keyspace scrp WITH REPLICATION = {  'class':'NetworkTopologyStrategy', 'DC1':'1' };
 
 use scrp;
