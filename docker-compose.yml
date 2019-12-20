@@ -25,7 +25,11 @@ services:
       - ./.setup:/tmp/.csetup
       - ./bin:/tmp/.scrp
     command: >
-             bash -c "sleep 999999999"
+             bash -c "cp /tmp/.csetup/keys/backend.* /tmp/.scrp/ && cp /tmp/.csetup/keys/frontend.* /tmp/.scrp/ && cp /tmp/.csetup/keys/backend.* /app/scrp/ && cp /tmp/.csetup/keys/frontend.* /app/scrp/ && sleep 999999999"
+    # GOCQL_HOST_LOOKUP_PREFER_V4=true ./gsvc localhost false false /tmp/.csetup/keys/staging/rootCa.crt /tmp/.csetup/keys/staging/cassandra-client.crt /tmp/.csetup/keys/staging/cassandra-client.key
+    # /tmp/.scrp/consul agent -config-file /tmp/.scrp/consul.json -bind 127.0.0.1 -bootstrap-expect 1
+    # /tmp/.scrp/traefik -c /tmp/.scrp/traefik.toml
+
     ports:
       - target: 80
         published: 80

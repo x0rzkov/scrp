@@ -13,6 +13,23 @@ I built this to distribute scraping across multiple servers, so as to go undetec
 ./gcli https://en.wikipedia.org/wiki/List_of_HTTP_status_codes _ ".*wikipedia\.org.*"
 ```
 
+# Dependencies
+## gRPC SSL Certificate (https://docs.traefik.io/v2.0/user-guides/grpc/)
+```
+
+In order to secure the gRPC server, we generate a self-signed certificate for service url:
+
+openssl req -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout backend.key -days 365 -out backend.cert -subj '/CN=backend.local'
+
+openssl req -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout frontend.key -days 365 -out frontend.cert -subj '/CN=frontend.local'
+
+
+```
+
+That will prompt for information, the important answer is:
+
+Common Name (e.g. server FQDN or YOUR name) []: backend.local / frontend.local
+
 # Thanks
 Cheers to the engineers of Cassandra, colly, gRPC,Consul, Traefik & protobuf to name a few.
 
